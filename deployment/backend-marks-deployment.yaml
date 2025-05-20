@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: backend-marks
-          image: nithi1230/quiz-backend-marks:latest
+          image: deepikapalanisamy23/quiz-backend-marks:latest
           ports:
             - containerPort: 3002
           env:
