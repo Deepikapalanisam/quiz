@@ -6,10 +6,10 @@ const mongoose = require("mongoose");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ MongoDB Atlas URI
-const MONGO_URI = 'mongodb+srv://nithinithish271:nithish1230@cluster0.cbw99.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+// MongoDB Atlas URI with database name 'quizApp'
+const MONGO_URI = 'mongodb+srv://nithinithish271:nithish1230@cluster0.cbw99.mongodb.net/quizApp?retryWrites=true&w=majority&appName=Cluster0';
 
-// ✅ Connect to MongoDB
+// Connect to MongoDB
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -17,7 +17,7 @@ mongoose.connect(MONGO_URI, {
 .then(() => console.log("✅ MongoDB Atlas connected!"))
 .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ✅ Middleware
+// Middleware
 app.use(cors({
   origin: "http://localhost:3000", // adjust if your frontend runs elsewhere
   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -26,13 +26,13 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 
-// ✅ Debug incoming requests
+// Debug incoming requests
 app.use((req, res, next) => {
   console.log(`🔎 ${req.method} ${req.url} --`, req.body);
   next();
 });
 
-// ✅ Mongoose Schemas
+// Mongoose Schemas
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
   language: { type: String, required: true }
@@ -45,14 +45,16 @@ const marksSchema = new mongoose.Schema({
 });
 const Marks = mongoose.model("Marks", marksSchema);
 
-// ✅ Test route to check CORS and server status
+// Test route to check CORS and server status
 app.get("/test", (req, res) => {
   res.json({ message: "✅ Backend is working and CORS is okay!" });
 });
 
-// ✅ Register User
+// Register User
 app.post("/register", async (req, res) => {
   const { username, language } = req.body;
+
+  console.log("Register payload:", req.body);
 
   if (!username || !language) {
     return res.status(400).json({ message: "Username and language are required" });
@@ -68,7 +70,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// ✅ Login User
+// Login User
 app.post("/login", async (req, res) => {
   const { username, language } = req.body;
 
@@ -89,7 +91,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// ✅ Store marks
+// Store marks
 app.post("/marks", async (req, res) => {
   const { id, totalMarks } = req.body;
 
@@ -107,7 +109,7 @@ app.post("/marks", async (req, res) => {
   }
 });
 
-// ✅ Get marks by ID
+// Get marks by ID
 app.get("/marks/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -124,7 +126,7 @@ app.get("/marks/:id", async (req, res) => {
   }
 });
 
-// ✅ Start server
+// Start server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Backend running on http://localhost:${PORT}`);
 });
