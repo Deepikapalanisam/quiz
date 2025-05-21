@@ -22,7 +22,7 @@ const App = () => {
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [wrongAnswers, setWrongAnswers] = useState(0);
   const [skippedAnswers, setSkippedAnswers] = useState(0);
-  const [timer, setTimer] = useState(15); // Set initial timer to 15 seconds
+  const [timer, setTimer] = useState(15);
   const [quizStarted, setQuizStarted] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
@@ -34,7 +34,7 @@ const App = () => {
 
     if (currentQuestion + 1 < shuffledQuestions.length) {
       setCurrentQuestion((prevQuestion) => prevQuestion + 1);
-      setTimer(15); // Reset timer to 15 seconds for the next question
+      setTimer(15);
       setSelectedAnswer(null);
     } else {
       setQuizStarted(false);
@@ -58,10 +58,10 @@ const App = () => {
     }
   }, [quizStarted, handleNextQuestion]);
 
-  const handleAnswerClick = (selectedAnswer) => {
-    setSelectedAnswer(selectedAnswer);
-    if (selectedAnswer === shuffledQuestions[currentQuestion].answer) {
-      setScore((prevScore) => prevScore + 1);
+  const handleAnswerClick = (answer) => {
+    setSelectedAnswer(answer);
+    if (answer === shuffledQuestions[currentQuestion].answer) {
+      setScore((prev) => prev + 1);
       setCorrectAnswers((prev) => prev + 1);
     } else {
       setWrongAnswers((prev) => prev + 1);
@@ -71,39 +71,42 @@ const App = () => {
   const startQuiz = () => {
     setCurrentQuestion(0);
     setScore(0);
-    setTimer(15); // Reset timer to 15 seconds when starting a new quiz
+    setTimer(15);
     setQuizStarted(true);
     setQuizCompleted(false);
     setSelectedAnswer(null);
     setCorrectAnswers(0);
     setWrongAnswers(0);
     setSkippedAnswers(0);
-
-    // Shuffle questions when starting quiz
-    setShuffledQuestions(shuffleArray(questionBankData[selectedLanguage]));
+    setShuffledQuestions(shuffleArray(questionBankData[selectedLanguage] || []));
   };
 
   const handleLogin = async (username, language) => {
-    // Try to register the user first (optional, or you can have a separate registration)
-    await fetch("http://localhost:5000/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, language }),
-    });
+    try {
+      // Register user
+      await fetch("http://localhost:5000/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, language }),
+      });
 
-    // Then try to login
-    const response = await fetch("http://localhost:5000/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, language }),
-    });
-    const data = await response.json();
+      // Login user
+      const response = await fetch("http://localhost:5000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, language }),
+      });
 
-    if (response.ok) {
-      setUsername(username);
-      setSelectedLanguage(language);
-    } else {
-      alert(data.message || "Login failed");
+      const data = await response.json();
+
+      if (response.ok) {
+        setUsername(username);
+        setSelectedLanguage(language);
+      } else {
+        alert(data.message || "Login failed");
+      }
+    } catch (error) {
+      alert("Server error: " + error.message);
     }
   };
 
@@ -116,24 +119,20 @@ const App = () => {
         {!username ? (
           <Login handleLogin={handleLogin} />
         ) : (
-          <div>
+          <>
             {!quizStarted && !quizCompleted ? (
               <>
                 <h3 className="greeting">Hello, {username}!</h3>
-                <button
-                  className="btn btn-primary start-btn"
-                  onClick={startQuiz}
-                >
+                <button className="btn btn-primary start-btn" onClick={startQuiz}>
                   Start Quiz for {selectedLanguage}
                 </button>
               </>
             ) : quizStarted ? (
-              selectedLanguage &&
-              shuffledQuestions &&
-              currentQuestion < shuffledQuestions.length ? (
+              shuffledQuestions.length > 0 && currentQuestion < shuffledQuestions.length ? (
                 <Questions
-                  questions={shuffledQuestions}
+                  question={shuffledQuestions[currentQuestion]}
                   currentQuestion={currentQuestion}
+                  totalQuestions={shuffledQuestions.length}
                   handleAnswerClick={handleAnswerClick}
                   timer={timer}
                   selectedAnswer={selectedAnswer}
@@ -147,14 +146,10 @@ const App = () => {
                 correctAnswers={correctAnswers}
                 wrongAnswers={wrongAnswers}
                 skippedAnswers={skippedAnswers}
-                setCurrentQuestion={setCurrentQuestion}
-                setQuizStarted={setQuizStarted}
-                selectedLanguage={selectedLanguage}
-                setScore={setScore}
                 startQuiz={startQuiz}
               />
             )}
-          </div>
+          </>
         )}
       </div>
     </div>
