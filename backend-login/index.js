@@ -6,21 +6,24 @@ const mongoose = require("mongoose");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ MongoDB Atlas URI and JWT (not used in this example but mentioned)
+// ✅ MongoDB Atlas URI
 const MONGO_URI = 'mongodb+srv://nithinithish271:nithish1230@cluster0.cbw99.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
-const JWT_SECRET = '4953546c308be3088b28807c767bd35e99818434d130a588e5e6d90b6d1d326e';
 
 // ✅ Connect to MongoDB
-mongoose
-  .connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("✅ MongoDB Atlas connected!"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log("✅ MongoDB Atlas connected!"))
+.catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ✅ Middlewares
-app.use(cors());
+// ✅ Middleware
+app.use(cors({
+  origin: "http://localhost:3000", // adjust if your frontend runs elsewhere
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type"],
+  credentials: true,
+}));
 app.use(bodyParser.json());
 
 // ✅ Debug incoming requests
@@ -29,19 +32,23 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ User Schema with validation
+// ✅ Mongoose Schemas
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
   language: { type: String, required: true }
 });
 const User = mongoose.model("User", userSchema);
 
-// ✅ Marks Schema with validation
 const marksSchema = new mongoose.Schema({
   id: { type: String, required: true },
   totalMarks: { type: Number, required: true }
 });
 const Marks = mongoose.model("Marks", marksSchema);
+
+// ✅ Test route to check CORS and server status
+app.get("/test", (req, res) => {
+  res.json({ message: "✅ Backend is working and CORS is okay!" });
+});
 
 // ✅ Register User
 app.post("/register", async (req, res) => {
@@ -117,7 +124,7 @@ app.get("/marks/:id", async (req, res) => {
   }
 });
 
-// ✅ Start the server
+// ✅ Start server
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Backend running on port ${PORT}`);
+  console.log(`🚀 Backend running on http://localhost:${PORT}`);
 });
