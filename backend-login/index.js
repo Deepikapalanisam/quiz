@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// MongoDB Atlas URI with database name 'quizApp'
+// MongoDB Atlas URI
 const MONGO_URI = 'mongodb+srv://nithinithish271:nithish1230@cluster0.cbw99.mongodb.net/quizApp?retryWrites=true&w=majority&appName=Cluster0';
 
 // Connect to MongoDB
@@ -17,22 +17,21 @@ mongoose.connect(MONGO_URI, {
 .then(() => console.log("✅ MongoDB Atlas connected!"))
 .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// Middleware setup
+// Middleware
 app.use(cors({
-  origin: "http://localhost:3000",  // frontend URL, change if different
+  origin: "http://localhost:3000", // frontend origin
   methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type"],
-  credentials: true,
+  credentials: true
 }));
 app.use(bodyParser.json());
 
-// Debug log for incoming requests
+// Debug incoming requests
 app.use((req, res, next) => {
   console.log(`🔎 ${req.method} ${req.url} --`, req.body);
   next();
 });
 
-// Mongoose schemas and models
+// Mongoose Schemas
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
   language: { type: String, required: true }
@@ -45,19 +44,19 @@ const marksSchema = new mongoose.Schema({
 });
 const Marks = mongoose.model("Marks", marksSchema);
 
-// Routes
-
-// Test route to check backend and CORS
+// Test route
 app.get("/test", (req, res) => {
   res.json({ message: "✅ Backend is working and CORS is okay!" });
 });
 
-// Register a new user
+// Register user
 app.post("/register", async (req, res) => {
   const { username, language } = req.body;
+
   if (!username || !language) {
     return res.status(400).json({ message: "Username and language are required" });
   }
+
   try {
     const user = new User({ username, language });
     await user.save();
@@ -68,12 +67,14 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// Login user by checking username and language
+// Login user
 app.post("/login", async (req, res) => {
   const { username, language } = req.body;
+
   if (!username || !language) {
     return res.status(400).json({ message: "Username and language are required" });
   }
+
   try {
     const user = await User.findOne({ username, language });
     if (user) {
@@ -87,12 +88,14 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Store marks for a user or test
+// Store marks
 app.post("/marks", async (req, res) => {
   const { id, totalMarks } = req.body;
+
   if (!id || totalMarks === undefined) {
     return res.status(400).json({ message: "ID and totalMarks are required" });
   }
+
   try {
     const mark = new Marks({ id, totalMarks });
     await mark.save();
@@ -106,6 +109,7 @@ app.post("/marks", async (req, res) => {
 // Get marks by ID
 app.get("/marks/:id", async (req, res) => {
   const { id } = req.params;
+
   try {
     const record = await Marks.findOne({ id });
     if (record) {
@@ -120,6 +124,6 @@ app.get("/marks/:id", async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Backend running on http://localhost:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Backend running at http://localhost:${PORT}`);
 });
