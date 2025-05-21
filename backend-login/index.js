@@ -17,22 +17,22 @@ mongoose.connect(MONGO_URI, {
 .then(() => console.log("✅ MongoDB Atlas connected!"))
 .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// Middleware
+// Middleware setup
 app.use(cors({
-  origin: "http://localhost:3000", // adjust if your frontend runs elsewhere
+  origin: "http://localhost:3000",  // frontend URL, change if different
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type"],
   credentials: true,
 }));
 app.use(bodyParser.json());
 
-// Debug incoming requests
+// Debug log for incoming requests
 app.use((req, res, next) => {
   console.log(`🔎 ${req.method} ${req.url} --`, req.body);
   next();
 });
 
-// Mongoose Schemas
+// Mongoose schemas and models
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
   language: { type: String, required: true }
@@ -45,21 +45,19 @@ const marksSchema = new mongoose.Schema({
 });
 const Marks = mongoose.model("Marks", marksSchema);
 
-// Test route to check CORS and server status
+// Routes
+
+// Test route to check backend and CORS
 app.get("/test", (req, res) => {
   res.json({ message: "✅ Backend is working and CORS is okay!" });
 });
 
-// Register User
+// Register a new user
 app.post("/register", async (req, res) => {
   const { username, language } = req.body;
-
-  console.log("Register payload:", req.body);
-
   if (!username || !language) {
     return res.status(400).json({ message: "Username and language are required" });
   }
-
   try {
     const user = new User({ username, language });
     await user.save();
@@ -70,14 +68,12 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// Login User
+// Login user by checking username and language
 app.post("/login", async (req, res) => {
   const { username, language } = req.body;
-
   if (!username || !language) {
     return res.status(400).json({ message: "Username and language are required" });
   }
-
   try {
     const user = await User.findOne({ username, language });
     if (user) {
@@ -91,14 +87,12 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Store marks
+// Store marks for a user or test
 app.post("/marks", async (req, res) => {
   const { id, totalMarks } = req.body;
-
   if (!id || totalMarks === undefined) {
     return res.status(400).json({ message: "ID and totalMarks are required" });
   }
-
   try {
     const mark = new Marks({ id, totalMarks });
     await mark.save();
@@ -112,7 +106,6 @@ app.post("/marks", async (req, res) => {
 // Get marks by ID
 app.get("/marks/:id", async (req, res) => {
   const { id } = req.params;
-
   try {
     const record = await Marks.findOne({ id });
     if (record) {
