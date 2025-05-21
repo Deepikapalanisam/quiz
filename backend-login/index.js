@@ -1,123 +1,103 @@
+require("dotenv").config();
 const express = require("express");
-const bodyParser = require("body-parser");
-const cors = require("cors");
 const mongoose = require("mongoose");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+const User = require("./models/User");
+const Marks = require("./models/Marks");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ MongoDB Atlas URI and JWT (not used in this example but mentioned)
-const MONGO_URI = 'mongodb+srv://nithinithish271:nithish1230@cluster0.cbw99.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
-const JWT_SECRET = '4953546c308be3088b28807c767bd35e99818434d130a588e5e6d90b6d1d326e';
-
-// ✅ Connect to MongoDB
-mongoose
-  .connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("✅ MongoDB Atlas connected!"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
-
-// ✅ Middlewares
+// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// ✅ Debug incoming requests
+// Debug all incoming requests
 app.use((req, res, next) => {
-  console.log(`🔎 ${req.method} ${req.url} --`, req.body);
+  console.log(`${req.method} ${req.url}`, req.body);
   next();
 });
 
-// ✅ User Schema with validation
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  language: { type: String, required: true }
-});
-const User = mongoose.model("User", userSchema);
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => console.log("✅ MongoDB connected"))
+  .catch(err => console.error("❌ MongoDB error:", err));
 
-// ✅ Marks Schema with validation
-const marksSchema = new mongoose.Schema({
-  id: { type: String, required: true },
-  totalMarks: { type: Number, required: true }
-});
-const Marks = mongoose.model("Marks", marksSchema);
-
-// ✅ Register User
+// Route: Register new user
 app.post("/register", async (req, res) => {
-  const { username, language } = req.body;
-
-  if (!username || !language) {
-    return res.status(400).json({ message: "Username and language are required" });
-  }
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ message: "Username and password required" });
 
   try {
-    const user = new User({ username, language });
+    const existing = await User.findOne({ username });
+    if (existing) return res.status(409).json({ message: "Username already exists" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ username, password: hashedPassword });
     await user.save();
-    res.json({ message: "User registered successfully" });
+
+    res.status(201).json({ message: "User registered" });
   } catch (err) {
     console.error("Register error:", err);
-    res.status(500).json({ message: "Error registering user" });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-// ✅ Login User
+// Route: Login
 app.post("/login", async (req, res) => {
-  const { username, language } = req.body;
-
-  if (!username || !language) {
-    return res.status(400).json({ message: "Username and language are required" });
-  }
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ message: "Username and password required" });
 
   try {
-    const user = await User.findOne({ username, language });
-    if (user) {
-      res.json({ message: "Login successful" });
-    } else {
-      res.status(401).json({ message: "Invalid credentials" });
-    }
+    const user = await User.findOne({ username });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ message: "Invalid credentials" });
+
+    const token = jwt.sign({ id: user._id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+    res.json({ message: "Login successful", token });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({ message: "Error logging in" });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-// ✅ Store marks
+// Route: Store marks
 app.post("/marks", async (req, res) => {
   const { id, totalMarks } = req.body;
-
-  if (!id || totalMarks === undefined) {
-    return res.status(400).json({ message: "ID and totalMarks are required" });
-  }
+  if (!id || totalMarks === undefined) return res.status(400).json({ message: "ID and totalMarks required" });
 
   try {
     const mark = new Marks({ id, totalMarks });
     await mark.save();
-    res.json({ message: "Marks stored successfully" });
+    res.json({ message: "Marks stored" });
   } catch (err) {
     console.error("Store marks error:", err);
     res.status(500).json({ message: "Error storing marks" });
   }
 });
 
-// ✅ Get marks by ID
+// Route: Get marks
 app.get("/marks/:id", async (req, res) => {
-  const { id } = req.params;
-
   try {
-    const record = await Marks.findOne({ id });
-    if (record) {
-      res.json(record);
-    } else {
-      res.status(404).json({ message: "Record not found" });
-    }
+    const record = await Marks.findOne({ id: req.params.id });
+    if (!record) return res.status(404).json({ message: "No marks found" });
+    res.json(record);
   } catch (err) {
     console.error("Get marks error:", err);
-    res.status(500).json({ message: "Error retrieving marks" });
+    res.status(500).json({ message: "Error fetching marks" });
   }
 });
 
-// ✅ Start the server
+// Start the server
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Backend running on port ${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
