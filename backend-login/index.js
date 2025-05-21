@@ -3,7 +3,6 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 const User = require("./models/User");
@@ -29,17 +28,16 @@ mongoose.connect(process.env.MONGO_URI, {
 }).then(() => console.log("✅ MongoDB connected"))
   .catch(err => console.error("❌ MongoDB error:", err));
 
-// Route: Register new user
+// Route: Register new user with language
 app.post("/register", async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ message: "Username and password required" });
+  const { username, language } = req.body;
+  if (!username || !language) return res.status(400).json({ message: "Username and language required" });
 
   try {
     const existing = await User.findOne({ username });
     if (existing) return res.status(409).json({ message: "Username already exists" });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, password: hashedPassword });
+    const user = new User({ username, language });
     await user.save();
 
     res.status(201).json({ message: "User registered" });
@@ -49,21 +47,18 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// Route: Login
+// Route: Login using only username
 app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ message: "Username and password required" });
+  const { username } = req.body;
+  if (!username) return res.status(400).json({ message: "Username required" });
 
   try {
     const user = await User.findOne({ username });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ message: "Invalid credentials" });
-
     const token = jwt.sign({ id: user._id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-    res.json({ message: "Login successful", token });
+    res.json({ message: "Login successful", token, language: user.language });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Internal server error" });
